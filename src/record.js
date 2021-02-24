@@ -96,7 +96,7 @@ async function handleKeyup(e) {
   }
   // SPACE
   if (e.keyCode === 32) {
-    audioEl.play().catch(console.error());
+    audioEl.play().catch(console.error);
   }
 }
 
