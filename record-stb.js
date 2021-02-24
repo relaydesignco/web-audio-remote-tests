@@ -124,7 +124,9 @@ function setupRecorder() {
   mediaRecorder = new MediaRecorder(stream, { type: 'audio/webm' });
   mediaRecorder.ondataavailable = (e) => {
     console.log(e.data);
-    chunks.push(e.data);
+    if(e.data.size > 0) {
+      chunks.push(e.data);
+    }
   };
   mediaRecorder.onerror = (e) => {
     throw e.error || new Error(e.name);
@@ -174,15 +176,20 @@ async function bluetoothOperation(macAddress, operation = 'pair') {
 async function pairMic() {
   try {
     status = await getStatus();
-    remote = status.find((device) => device.alias === 'mFC RCU_0A');
-    mic = status.find((device) => device.alias === 'mFC Mic_0A');
-    if (!remote || remote.paired !== true) {
-      await scan();
-      let remoteResult = await pair(remote.address); // remote
-      if (remoteResult === 'paired') {
-        await bluetoothOperation(mic.address, 'pair'); // mic
-      }
-    } else console.log('remote is paired');
+    if(status == "bluetooth_uninitialized") {
+      console.log('no BT yet, try again shortly.');
+      setTimeout(pairMic, 3000);
+    } else {
+      remote = status.find((device) => device.alias === 'mFC RCU_0A');
+      mic = status.find((device) => device.alias === 'mFC Mic_0A');
+      if (!remote || remote.paired !== true) {
+        await scan();
+        let remoteResult = await pair(remote.address); // remote
+        if (remoteResult === 'paired') {
+          await bluetoothOperation(mic.address, 'pair'); // mic
+        }
+      } else console.log('remote is paired');
+    }
   } catch (err) {
     console.error('pairMic', err);
   }
@@ -191,6 +198,7 @@ async function pairMic() {
 buttonEl.addEventListener('click', record);
 
 document.addEventListener('keyup', handleKeyup);
+
 
 pairMic();
 setupWebSockets();
