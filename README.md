@@ -18,4 +18,4 @@ Press RETURN to record audio and again to STOP recording.
 
 Then press SPACE to playback recording.
 
-Press ESC to reset, and repeat the process. You should not need to connect or allow mic access again.
+Press ESC to reset, and you can repeat the process.
