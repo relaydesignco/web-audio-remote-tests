@@ -19,4 +19,3 @@ Press RETURN to record audio and again to STOP recording.
 Then press SPACE to playback recording.
 
 Press ESC to reset, and you can repeat the process.
->>>>>>> e627925d480170aed977cdb70674bd191de7ad5d
