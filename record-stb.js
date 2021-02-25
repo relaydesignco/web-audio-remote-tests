@@ -9,6 +9,10 @@ let status = [];
 let remote;
 let mic;
 
+let micCheckInterval = null;
+let micCheckRetries = 0;
+let micFound = false;
+
 let audioEl = document.querySelector('audio');
 let buttonEl = document.querySelector('button');
 
@@ -57,6 +61,28 @@ function setupWebSockets() {
   };
 }
 
+async function setMicDeviceInfo() {
+  console.log('checking for device info');
+  if (!micFound) {
+    let deviceInfos = await navigator.mediaDevices.enumerateDevices();
+    micCheckRetries++;
+    deviceInfos.forEach((deviceInfo) => {
+      if (deviceInfo.kind === 'audioinput' && deviceInfo.label === 'mFC Mic_0A') {
+        micFound = true;
+        console.log('found device: ', deviceInfo.deviceId);
+        if (micCheckInterval) clearInterval(micCheckInterval);
+        micID = deviceInfo.deviceId;
+      }
+    });
+  } else if (micCheckInterval) clearInterval(micCheckInterval);
+
+  if (micCheckRetries >= 20 && micCheckInterval) {
+    console.log('have exhausted mic check');
+    clearInterval(micCheckInterval);
+    micID = null;
+  }
+}
+
 async function handleKeyup(e) {
   console.log(e.keyCode);
   // TALK BUTTON
@@ -65,11 +91,12 @@ async function handleKeyup(e) {
       if (!remoteConnected) {
         await bluetoothOperation(mic.address, 'connect');
         remoteConnected = true;
-        await wait(1000);
-        let deviceInfos = await navigator.mediaDevices.enumerateDevices();
-        console.log(deviceInfos);
-        let remoteMic = deviceInfos.find((device) => device.label === 'mFC Mic_0A');
-        micID = remoteMic.deviceId;
+        micCheckInterval = setInterval(setMicDeviceInfo, 250);
+        // await wait(1000);
+        // let deviceInfos = await navigator.mediaDevices.enumerateDevices();
+        // console.log(deviceInfos);
+        // let remoteMic = deviceInfos.find((device) => device.label === 'mFC Mic_0A');
+        // micID = remoteMic.deviceId;
         if (!stream) {
           audioInit();
         } else setupRecorder();
@@ -100,6 +127,10 @@ async function handleKeyup(e) {
   if (e.keyCode === 32) {
     audioEl.play().catch(console.error);
   }
+  // B
+  if (e.keyCode === 66) {
+    status = await getStatus();
+  }
 }
 
 function record() {
@@ -124,7 +155,7 @@ function setupRecorder() {
   mediaRecorder = new MediaRecorder(stream, { type: 'audio/webm' });
   mediaRecorder.ondataavailable = (e) => {
     console.log(e.data);
-    if(e.data.size > 0) {
+    if (e.data.size > 0) {
       chunks.push(e.data);
     }
   };
@@ -176,7 +207,7 @@ async function bluetoothOperation(macAddress, operation = 'pair') {
 async function pairMic() {
   try {
     status = await getStatus();
-    if(status == "bluetooth_uninitialized") {
+    if (status == 'bluetooth_uninitialized') {
       console.log('no BT yet, try again shortly.');
       setTimeout(pairMic, 3000);
     } else {
@@ -198,7 +229,6 @@ async function pairMic() {
 buttonEl.addEventListener('click', record);
 
 document.addEventListener('keyup', handleKeyup);
-
 
 pairMic();
 setupWebSockets();
